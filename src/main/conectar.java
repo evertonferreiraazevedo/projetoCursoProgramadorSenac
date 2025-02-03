@@ -59,9 +59,9 @@ public class conectar {
 				System.out.printf("ID: %d, Nome: %s, Preço: %.2f, Quantidade: %d%n",
 						id, nome, preco, quantidade);
 			}
-
-			System.out.println(resultado_consulta);
-		}	}
+			System.out.println("Consulta terminada");
+		}	
+	}
 
 	public static void atualizarDados() throws SQLException {
 
@@ -88,12 +88,10 @@ public class conectar {
 				System.out.println("Produto não encontrado.");
 			}
 
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
 	}
 
-	public static void deletarDados()	 throws SQLException {
+	public static void deletarDados() throws SQLException {
 
 		Scanner scanner = new Scanner(System.in);
 		System.out.println("Digite o nome do produto que deseja excluir:");
@@ -103,16 +101,25 @@ public class conectar {
 		try (Connection conexao = conexao_com_banco();
 				PreparedStatement cursor = conexao.prepareStatement(sql)) {
 			cursor.setString(1, nome);
-			cursor.executeUpdate();
-			System.out.println("Excluido com Sucesso!");
-		}    }
+			int linhasAfetadas = cursor.executeUpdate();
 
-	public static void main(String[] args) throws SQLException {
+			if (linhasAfetadas > 0) {
+				System.out.println("Produto/Produtos deletado com sucesso!");
+			} else {
+				System.out.println("Produto não encontrado.");
+			}
+		}   
+	}
 
+	public static void menuPrincipal() throws SQLException {
 		while(true) {
 			Scanner scanner = new Scanner(System.in);
-			System.out.println("\nEscolha uma opção: \n1. Inserir Dados \n2. Consultar Dados");
-			System.out.println("3. Atualizar Dados \n4. Deletar Dados \n5. Sair");
+			System.out.println("\nEscolha uma opção: "
+							+ "\n1. Inserir Dados "
+							+ "\n2. Consultar Dados "
+							+ "\n3. Atualizar Dados "
+							+ "\n4. Deletar Dados "
+							+ "\n5. Sair");
 			int opcao = Integer.parseInt(scanner.nextLine());
 
 
@@ -131,7 +138,15 @@ public class conectar {
 				break;
 			case 5:
 				return;
-			}
+			default:
+				System.out.println("Escolha uma opção valida");		
+				break;
+				}
 		}
+		
+	}
+	
+	public static void main(String[] args) throws SQLException {
+		menuPrincipal();		
 	}
 }
