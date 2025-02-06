@@ -1,152 +1,97 @@
 package main;
+
+import java.sql.*;
+import javax.swing.*;
 import java.math.BigDecimal;
-import java.util.Scanner;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 
+public class Conectar {
 
-public class conectar {
+    private static final String URL = "jdbc:mysql://localhost:3306/senac"; // URL do banco de dados
+    private static final String USER = "root"; // Usuário do banco de dados
+    private static final String PASSWORD = "123456"; // Senha do banco de dados
 
-	static String URL = "jdbc:mysql://localhost:3306/senac";
-	static String USER = "root";
-	static String PASSWORD = "123456";
+    private static Connection conexao;
 
-	public static Connection conexao_com_banco() {
-		try {
-			return DriverManager.getConnection(URL, USER, PASSWORD);		}
-		catch (SQLException e){
-			System.err.println("ERRO, QUEBROU TUDO :c " + e.getMessage());			
-			return null;		}}
+    // Método para conectar ao banco de dados
+    public static void conectarBanco() {
+        try {
+            if (conexao == null || conexao.isClosed()) {
+                conexao = DriverManager.getConnection(URL, USER, PASSWORD); // Cria a conexão com o banco
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Erro ao conectar ao banco de dados: " + e.getMessage());
+        }
+    }
 
-	public static void inserirDados() throws SQLException {
+    // Método para inserir dados no banco de dados
+    public static void inserirDados(String nome, BigDecimal preco, int quantidade) throws SQLException {
+        conectarBanco(); // Garante que a conexão está ativa
 
-		Scanner scanner = new Scanner(System.in);
-		System.out.println("Digite o nome do produto:");
-		String nome = scanner.nextLine();
-		System.out.println("Digite o preço do produto:");
-		BigDecimal preco = new BigDecimal(scanner.nextLine());
-		System.out.println("Digite a quantidade do produto:");
-		int quantidade = Integer.parseInt(scanner.nextLine());
+        String sql = "INSERT INTO produtos (nome, preco, quantidade) VALUES (?, ?, ?)";
+        try (PreparedStatement pst = conexao.prepareStatement(sql)) {
+            pst.setString(1, nome);
+            pst.setBigDecimal(2, preco);
+            pst.setInt(3, quantidade);
+            pst.executeUpdate(); // Executa a inserção
+            JOptionPane.showMessageDialog(null, "Produto inserido com sucesso!");
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Erro ao inserir produto: " + e.getMessage());
+        }
+    }
 
-		String sql = "INSERT INTO produtos(nome, preco, quantidade) values (?,?,?);";
-		try(Connection realizar_conexao = conexao_com_banco();
-				PreparedStatement  cursor = realizar_conexao.prepareStatement(sql)){
+    // Método para consultar todos os dados do banco e exibir no JTextArea
+    public static void consultarDados(JTextArea resultadoConsultaArea) throws SQLException {
+        conectarBanco(); // Garante que a conexão está ativa
 
-			cursor.setString(1, nome);	
-			cursor.setBigDecimal(2, preco);	
-			cursor.setInt(3, quantidade);	
-			cursor.executeUpdate();
-			System.out.println("Inserido com sucesso ");	}}
+        String sql = "SELECT * FROM produtos"; // Consulta todos os produtos
+        try (Statement stmt = conexao.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            StringBuilder sb = new StringBuilder();
+            while (rs.next()) {
+                sb.append("Nome: ").append(rs.getString("nome"))
+                  .append(", Preço: ").append(rs.getBigDecimal("preco"))
+                  .append(", Quantidade: ").append(rs.getInt("quantidade"))
+                  .append("\n");
+            }
+            resultadoConsultaArea.setText(sb.toString()); // Exibe os resultados na área de texto
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Erro ao consultar dados: " + e.getMessage());
+        }
+    }
 
-	public static void consultarDados() throws SQLException {
-		String sql = "Select * from produtos";
+    // Método para atualizar o preço de um produto
+    public static void atualizarDados(String nome, BigDecimal preco) throws SQLException {
+        conectarBanco(); // Garante que a conexão está ativa
 
-		try(Connection realizar_conexao = conexao_com_banco();
-				Statement cursor = realizar_conexao.createStatement();
-				ResultSet resultado_consulta = cursor.executeQuery(sql)
-				){
+        String sql = "UPDATE produtos SET preco = ? WHERE nome = ?";
+        try (PreparedStatement pst = conexao.prepareStatement(sql)) {
+            pst.setBigDecimal(1, preco);
+            pst.setString(2, nome);
+            int linhasAfetadas = pst.executeUpdate();
+            if (linhasAfetadas > 0) {
+                JOptionPane.showMessageDialog(null, "Preço do produto atualizado com sucesso!");
+            } else {
+                JOptionPane.showMessageDialog(null, "Produto não encontrado para atualização!");
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Erro ao atualizar preço: " + e.getMessage());
+        }
+    }
 
-			while (resultado_consulta.next()) {
-				int id = resultado_consulta.getInt("id");
-				String nome = resultado_consulta.getString("nome");
-				double preco = resultado_consulta.getDouble("preco");
-				int quantidade = resultado_consulta.getInt("quantidade");
+    // Método para deletar um produto pelo nome
+    public static void deletarDados(String nome) throws SQLException {
+        conectarBanco(); // Garante que a conexão está ativa
 
-				System.out.printf("ID: %d, Nome: %s, Preço: %.2f, Quantidade: %d%n",
-						id, nome, preco, quantidade);
-			}
-			System.out.println("Consulta terminada");
-		}	
-	}
-
-	public static void atualizarDados() throws SQLException {
-
-		Scanner scanner = new Scanner(System.in);
-
-		System.out.println("Digite o nome do produto que deseja atualizar:");
-		String nome = scanner.nextLine();
-
-		System.out.println("Digite o novo preço do produto:");
-		BigDecimal preco = new BigDecimal(scanner.nextLine());
-
-		String sql = "UPDATE produtos SET preco = ? WHERE nome = ?";
-
-		try (Connection conexao = conexao_com_banco();
-				PreparedStatement cursor = conexao.prepareStatement(sql)) {
-
-			cursor.setBigDecimal(1, preco);
-			cursor.setString(2, nome);
-			int linhasAfetadas = cursor.executeUpdate();
-
-			if (linhasAfetadas > 0) {
-				System.out.println("Produto/Produtos atualizado com sucesso!");
-			} else {
-				System.out.println("Produto não encontrado.");
-			}
-
-		}
-	}
-
-	public static void deletarDados() throws SQLException {
-
-		Scanner scanner = new Scanner(System.in);
-		System.out.println("Digite o nome do produto que deseja excluir:");
-		String nome = scanner.nextLine();
-		String sql = "DELETE FROM produtos WHERE nome = ?";
-
-		try (Connection conexao = conexao_com_banco();
-				PreparedStatement cursor = conexao.prepareStatement(sql)) {
-			cursor.setString(1, nome);
-			int linhasAfetadas = cursor.executeUpdate();
-
-			if (linhasAfetadas > 0) {
-				System.out.println("Produto/Produtos deletado com sucesso!");
-			} else {
-				System.out.println("Produto não encontrado.");
-			}
-		}   
-	}
-
-	public static void menuPrincipal() throws SQLException {
-		while(true) {
-			Scanner scanner = new Scanner(System.in);
-			System.out.println("\nEscolha uma opção: "
-							+ "\n1. Inserir Dados "
-							+ "\n2. Consultar Dados "
-							+ "\n3. Atualizar Dados "
-							+ "\n4. Deletar Dados "
-							+ "\n5. Sair");
-			int opcao = Integer.parseInt(scanner.nextLine());
-
-
-			switch(opcao) {
-			case 1:
-				inserirDados();
-				break;
-			case 2:
-				consultarDados();
-				break;
-			case 3:
-				atualizarDados();
-				break;
-			case 4:
-				deletarDados();
-				break;
-			case 5:
-				return;
-			default:
-				System.out.println("Escolha uma opção valida");		
-				break;
-				}
-		}
-		
-	}
-	
-	public static void main(String[] args) throws SQLException {
-		menuPrincipal();		
-	}
+        String sql = "DELETE FROM produtos WHERE nome = ?";
+        try (PreparedStatement pst = conexao.prepareStatement(sql)) {
+            pst.setString(1, nome);
+            int linhasAfetadas = pst.executeUpdate();
+            if (linhasAfetadas > 0) {
+                JOptionPane.showMessageDialog(null, "Produto deletado com sucesso!");
+            } else {
+                JOptionPane.showMessageDialog(null, "Produto não encontrado para deleção!");
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Erro ao deletar produto: " + e.getMessage());
+        }
+    }
 }
